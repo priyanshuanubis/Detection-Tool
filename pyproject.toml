@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "road-sign-detection"
+version = "0.1.0"
+description = "Road sign detection and classification benchmark using traditional CV, CNN, YOLO, and SAM"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "opencv-python>=4.9",
+  "scikit-learn>=1.4",
+  "matplotlib>=3.8",
+  "seaborn>=0.13",
+  "torch>=2.2",
+  "torchvision>=0.17",
+  "ultralytics>=8.2",
+  "segment-anything-py>=1.0",
+  "Pillow>=10.0",
+  "tqdm>=4.66",
+  "pyyaml>=6.0",
+  "openpyxl>=3.1",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
