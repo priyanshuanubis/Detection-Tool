@@ -154,15 +154,21 @@ def _load_labels_sheet(path: Path) -> pd.DataFrame:
 
 
 def _find_images_dir(archie_root: Path) -> Path:
-    direct = archie_root / "images" / "Indian Road Signs"
-    if direct.exists():
-        return direct
+    preferred = archie_root / "Indian Road Signs" / "Images"
+    if preferred.exists():
+        return preferred
+
+    legacy = archie_root / "images" / "Indian Road Signs"
+    if legacy.exists():
+        return legacy
 
     for p in archie_root.glob("**/*"):
-        if p.is_dir() and p.name.lower() == "indian road signs":
-            return p
+        if p.is_dir() and p.name.lower() in {"images", "indian road signs"}:
+            # prefer full expected depth .../Indian Road Signs/Images
+            if p.name.lower() == "images" and p.parent.name.lower() == "indian road signs":
+                return p
     raise FileNotFoundError(
-        f"Could not find 'Indian Road Signs' image directory under {archie_root}"
+        f"Could not find image directory under {archie_root}. Expected '{archie_root}/Indian Road Signs/Images'."
     )
 
 
@@ -195,7 +201,7 @@ def generate_archie_splits(
 
     Expected incoming layout (user-provided):
       <archie_root>/labels.*
-      <archie_root>/images/Indian Road Signs/{1..81}.png
+      <archie_root>/Indian Road Signs/Images/{1..81}.png
 
     Since this dataset commonly has one image per class, the function duplicates rows
     across train/val/test to allow pipeline smoke-testing and training code execution.

@@ -9,7 +9,7 @@ This project provides full code for comparing road-sign recognition approaches:
    - YOLOv8 classification
    - SAM (Segment Anything) mask extraction over YOLO detections
 
-It supports your 81-class road-sign label set and now includes utilities for the dataset layout you described (`archie` folder with label sheet + `images/Indian Road Signs`).
+It supports your 81-class road-sign label set and now includes utilities for the dataset layout you described (`archive/Indian Road Signs/Images`).
 
 ---
 
@@ -24,15 +24,15 @@ pip install -e .
 
 ---
 
-## 2) Expected archie test dataset layout
+## 2) Expected archive test dataset layout
 
 When you add data to the repository, place it like this:
 
 ```text
-archie/
+archive/
 ├── labels.csv (or labels.xlsx)
-└── images/
-    └── Indian Road Signs/
+└── Indian Road Signs/
+    └── Images/
         ├── 1.png
         ├── 2.png
         ├── ...
@@ -54,7 +54,7 @@ Edit `configs/experiment.yaml`:
 ```yaml
 paths:
   dataset_root: ../data
-  archie_root: ../archie
+  archie_root: ../archive
   train_csv: ../data/train.csv
   val_csv: ../data/val.csv
   test_csv: ../data/test.csv
@@ -62,19 +62,19 @@ paths:
   output_dir: ../runs
 ```
 
-> If you are using archie-generated CSVs, set `images_dir` to the `archie` root (because generated image paths are relative to that root).
+> If you are using archie-generated CSVs, set `images_dir` to the `archive` root (because generated image paths are relative to that root).
 
 ---
 
-## 4) Prepare CSV splits from archie folder
+## 4) Prepare CSV splits from archive folder
 
-Generate `train.csv`, `val.csv`, `test.csv` directly from your `archie` dataset:
+Generate `train.csv`, `val.csv`, `test.csv` directly from your `archive` dataset:
 
 ```bash
 python -m road_signs.main \
   --config configs/experiment.yaml \
   --mode prepare-archie \
-  --archie-root archie \
+  --archie-root archive \
   --csv-out-dir data
 ```
 
@@ -92,7 +92,7 @@ Optional: build YOLO-classification folder tree from generated CSVs:
 python -m road_signs.main \
   --config configs/experiment.yaml \
   --mode prepare-archie \
-  --archie-root archie \
+  --archie-root archive \
   --csv-out-dir data \
   --build-yolo-cls-tree
 ```
@@ -154,7 +154,7 @@ python -m road_signs.main \
 ### Convenience runner
 
 ```bash
-python scripts/run_experiments.py --config configs/experiment.yaml --prepare-archie --archie-root archie
+python scripts/run_experiments.py --config configs/experiment.yaml --prepare-archie --archie-root archive
 ```
 
 ---
@@ -165,7 +165,7 @@ python scripts/run_experiments.py --config configs/experiment.yaml --prepare-arc
 from road_signs.modern_models import sam_mask_from_yolo_boxes
 
 results = sam_mask_from_yolo_boxes(
-    image_path="archie/images/Indian Road Signs/1.png",
+    image_path="archive/Indian Road Signs/Images/1.png",
     yolo_model_path="runs/yolo_detection/weights/best.pt",
     sam_model_path="sam_vit_b_01ec64.pth",
     device="cuda",  # or "cpu"
@@ -182,4 +182,4 @@ for r in results:
 - Traditional/CNN modules output classification reports.
 - YOLO training uses Ultralytics built-in metrics.
 - SAM requires a downloaded checkpoint.
-- This code is now amended to directly support your incoming `archie` folder format.
+- This code is now amended to directly support your incoming `archive/Indian Road Signs/Images` folder format.

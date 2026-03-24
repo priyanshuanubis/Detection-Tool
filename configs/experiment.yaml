@@ -1,6 +1,6 @@
 paths:
   dataset_root: ../data
-  archie_root: ../archie
+  archie_root: ../archive
   train_csv: ../data/train.csv
   val_csv: ../data/val.csv
   test_csv: ../data/test.csv

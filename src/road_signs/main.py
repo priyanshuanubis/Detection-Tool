@@ -40,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--archie-root",
         default=None,
-        help="Path to archie folder containing labels sheet and images/Indian Road Signs",
+        help="Path to archive folder containing labels sheet and Indian Road Signs/Images",
     )
     parser.add_argument(
         "--csv-out-dir",
