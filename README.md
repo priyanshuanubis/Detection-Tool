@@ -1,45 +1,19 @@
 # Road Sign Detection and Classification Benchmark
 
-This project provides **full code** for comparing road-sign recognition approaches:
+This project provides full code for comparing road-sign recognition approaches:
 
-1. **Traditional Computer Vision + ML** (HOG + color histogram + edge features + SVM)
-2. **CNN classifier** (PyTorch)
-3. **Modern Vision Models**
-   - **YOLOv8 detection**
-   - **YOLOv8 classification**
-   - **SAM (Segment Anything) mask extraction over YOLO detections**
+1. Traditional Computer Vision + ML (HOG + color histogram + edge features + SVM)
+2. CNN classifier (PyTorch)
+3. Modern Vision Models
+   - YOLOv8 detection
+   - YOLOv8 classification
+   - SAM (Segment Anything) mask extraction over YOLO detections
 
-It is designed for your 81-class road-sign label set (included in `data/labels.csv`).
-
----
-
-## 1) Project Structure
-
-```text
-Detection-Tool/
-├── configs/
-│   └── experiment.yaml
-├── data/
-│   └── labels.csv
-├── scripts/
-│   └── run_experiments.py
-├── src/
-│   └── road_signs/
-│       ├── __init__.py
-│       ├── cnn.py
-│       ├── config.py
-│       ├── data.py
-│       ├── evaluation.py
-│       ├── label_map.py
-│       ├── main.py
-│       ├── modern_models.py
-│       └── traditional_cv.py
-└── pyproject.toml
-```
+It supports your 81-class road-sign label set and now includes utilities for the dataset layout you described (`archie` folder with label sheet + `images/Indian Road Signs`).
 
 ---
 
-## 2) Installation
+## 1) Installation
 
 ```bash
 python -m venv .venv
@@ -50,62 +24,82 @@ pip install -e .
 
 ---
 
-## 3) Dataset Format
+## 2) Expected archie test dataset layout
 
-Put your images in:
+When you add data to the repository, place it like this:
 
 ```text
-data/images/
+archie/
+├── labels.csv (or labels.xlsx)
+└── images/
+    └── Indian Road Signs/
+        ├── 1.png
+        ├── 2.png
+        ├── ...
+        └── 81.png
 ```
 
-Create split CSV files:
-- `data/train.csv`
-- `data/val.csv`
-- `data/test.csv`
+Label sheet must contain either:
+- `id,label`
+- or `label_id,label`
 
-### Minimum CSV columns (classification)
-
-```csv
-image,label_id
-img_0001.jpg,1
-img_0002.jpg,24
-```
-
-### Optional bbox columns (for detection / better cropping)
-
-```csv
-image,label_id,xmin,ymin,xmax,ymax
-img_0001.jpg,1,12,20,96,104
-```
-
-> `label_id` should be in **[1..81]**.
+Image filenames can be numeric (`68.png`) or contain a single number (`sign_68.png`).
 
 ---
 
-## 4) Configure Paths/Training
+## 3) Config
 
 Edit `configs/experiment.yaml`:
 
 ```yaml
 paths:
   dataset_root: ../data
+  archie_root: ../archie
   train_csv: ../data/train.csv
   val_csv: ../data/val.csv
   test_csv: ../data/test.csv
   images_dir: ../data/images
   output_dir: ../runs
+```
 
-training:
-  image_size: 64
-  batch_size: 32
-  epochs: 15
-  learning_rate: 0.001
-  random_seed: 42
+> If you are using archie-generated CSVs, set `images_dir` to the `archie` root (because generated image paths are relative to that root).
+
+---
+
+## 4) Prepare CSV splits from archie folder
+
+Generate `train.csv`, `val.csv`, `test.csv` directly from your `archie` dataset:
+
+```bash
+python -m road_signs.main \
+  --config configs/experiment.yaml \
+  --mode prepare-archie \
+  --archie-root archie \
+  --csv-out-dir data
+```
+
+This writes:
+- `data/train.csv`
+- `data/val.csv`
+- `data/test.csv`
+- `data/archie_dataset_info.txt`
+
+Because this dataset often has one image per class, the code duplicates all samples across train/val/test (shuffled order) so training/testing pipelines can run end-to-end.
+
+Optional: build YOLO-classification folder tree from generated CSVs:
+
+```bash
+python -m road_signs.main \
+  --config configs/experiment.yaml \
+  --mode prepare-archie \
+  --archie-root archie \
+  --csv-out-dir data \
+  --build-yolo-cls-tree
 ```
 
 ---
 
-## 5) Run Experiments
+## 5) Run experiments
 
 ### Traditional CV baseline
 
@@ -129,7 +123,7 @@ Outputs:
 
 ### YOLOv8 detection
 
-Prepare a valid YOLO data yaml (e.g., `data_yolo.yaml`), then:
+Prepare YOLO `data.yaml`, then:
 
 ```bash
 python -m road_signs.main \
@@ -144,8 +138,8 @@ YOLO classification expects:
 
 ```text
 <root>/
-  train/<class_name>/*.jpg
-  val/<class_name>/*.jpg
+  train/<class_name>/*.jpg|png
+  val/<class_name>/*.jpg|png
 ```
 
 Run:
@@ -157,23 +151,21 @@ python -m road_signs.main \
   --yolo-cls-root path/to/cls_root
 ```
 
-### Quick multi-run helper
+### Convenience runner
 
 ```bash
-python scripts/run_experiments.py --config configs/experiment.yaml
+python scripts/run_experiments.py --config configs/experiment.yaml --prepare-archie --archie-root archie
 ```
 
 ---
 
 ## 6) SAM + YOLO integration example
 
-In Python:
-
 ```python
 from road_signs.modern_models import sam_mask_from_yolo_boxes
 
 results = sam_mask_from_yolo_boxes(
-    image_path="data/images/sample.jpg",
+    image_path="archie/images/Indian Road Signs/1.png",
     yolo_model_path="runs/yolo_detection/weights/best.pt",
     sam_model_path="sam_vit_b_01ec64.pth",
     device="cuda",  # or "cpu"
@@ -185,30 +177,9 @@ for r in results:
 
 ---
 
-## 7) Notes on Evaluation
+## 7) Notes
 
-- Traditional/CNN modules currently generate a **classification report** (precision, recall, f1).
+- Traditional/CNN modules output classification reports.
 - YOLO training uses Ultralytics built-in metrics.
-- You can extend this with:
-  - confusion matrix plots,
-  - mAP@50 and mAP@50-95 comparisons,
-  - latency (CPU/GPU) benchmarking,
-  - per-class error analysis.
-
----
-
-## 8) Label Set
-
-The complete 81 labels are provided in:
-- `data/labels.csv`
-- `src/road_signs/label_map.py`
-
----
-
-## 9) Common Troubleshooting
-
-- **Module not found `road_signs`**: install with `pip install -e .`
-- **YOLO training errors**: verify dataset folder structure and YAML paths
-- **SAM checkpoint missing**: download a SAM checkpoint and pass its path
-- **CUDA not available**: code falls back to CPU for CNN (YOLO/SAM depend on runtime settings)
-
+- SAM requires a downloaded checkpoint.
+- This code is now amended to directly support your incoming `archie` folder format.

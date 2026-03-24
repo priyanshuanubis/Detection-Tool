@@ -7,7 +7,11 @@ from pathlib import Path
 
 from .cnn import train_and_eval_cnn
 from .config import load_config
-from .data import read_split
+from .data import (
+    build_yolo_cls_tree_from_csvs,
+    generate_archie_splits,
+    read_split,
+)
 from .evaluation import save_text_report
 from .modern_models import train_yolo_classification, train_yolo_detection
 from .traditional_cv import train_and_eval_traditional
@@ -20,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["traditional", "cnn", "yolo-detect", "yolo-cls", "all"],
+        choices=["prepare-archie", "traditional", "cnn", "yolo-detect", "yolo-cls", "all"],
         help="Which model family to run",
     )
     parser.add_argument(
@@ -33,7 +37,50 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="YOLO classification dataset root (required for yolo-cls/all)",
     )
+    parser.add_argument(
+        "--archie-root",
+        default=None,
+        help="Path to archie folder containing labels sheet and images/Indian Road Signs",
+    )
+    parser.add_argument(
+        "--csv-out-dir",
+        default=None,
+        help="Where generated train/val/test CSV files should be written",
+    )
+    parser.add_argument(
+        "--build-yolo-cls-tree",
+        action="store_true",
+        help="Also generate YOLO classification tree from generated CSVs",
+    )
     return parser
+
+
+
+def run_prepare_archie(cfg, args):
+    archie_root = Path(args.archie_root) if args.archie_root else cfg.paths.archie_root
+    if archie_root is None:
+        raise ValueError("Set paths.archie_root in config or pass --archie-root")
+
+    out_dir = Path(args.csv_out_dir) if args.csv_out_dir else cfg.paths.dataset_root
+    train_csv, val_csv, test_csv = generate_archie_splits(
+        archie_root=archie_root,
+        out_dir=out_dir,
+    )
+
+    print(f"[archie] train csv: {train_csv}")
+    print(f"[archie] val csv:   {val_csv}")
+    print(f"[archie] test csv:  {test_csv}")
+
+    if args.build_yolo_cls_tree:
+        cls_root = Path(cfg.paths.output_dir) / "yolo_cls_data"
+        build_yolo_cls_tree_from_csvs(
+            dataset_root=archie_root,
+            train_csv=train_csv,
+            val_csv=val_csv,
+            out_root=cls_root,
+            copy_files=True,
+        )
+        print(f"[archie] YOLO-CLS tree: {cls_root}")
 
 
 
@@ -99,6 +146,10 @@ def main() -> None:
     args = build_parser().parse_args()
     cfg = load_config(args.config)
     Path(cfg.paths.output_dir).mkdir(parents=True, exist_ok=True)
+
+    if args.mode == "prepare-archie":
+        run_prepare_archie(cfg, args)
+        return
 
     if args.mode in {"traditional", "all"}:
         run_traditional(cfg)

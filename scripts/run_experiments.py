@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-from pathlib import Path
 
 
 
@@ -20,9 +19,17 @@ def main() -> None:
     parser.add_argument("--config", default="configs/experiment.yaml")
     parser.add_argument("--yolo-data", default=None)
     parser.add_argument("--yolo-cls-root", default=None)
+    parser.add_argument("--prepare-archie", action="store_true")
+    parser.add_argument("--archie-root", default=None)
     args = parser.parse_args()
 
     base = [sys.executable, "-m", "road_signs.main", "--config", args.config]
+
+    if args.prepare_archie:
+        cmd = base + ["--mode", "prepare-archie"]
+        if args.archie_root:
+            cmd += ["--archie-root", args.archie_root]
+        run(cmd)
 
     run(base + ["--mode", "traditional"])
     run(base + ["--mode", "cnn"])

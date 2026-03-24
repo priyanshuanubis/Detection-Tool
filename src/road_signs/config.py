@@ -12,6 +12,7 @@ import yaml
 @dataclass
 class PathsConfig:
     dataset_root: Path
+    archie_root: Path | None
     train_csv: Path
     val_csv: Path
     test_csv: Path
@@ -48,9 +49,11 @@ def load_config(config_path: str | Path) -> ExperimentConfig:
 
     base = config_path.parent
     paths = raw["paths"]
+    archie_raw = paths.get("archie_root")
 
     path_cfg = PathsConfig(
         dataset_root=_abs(base, paths["dataset_root"]),
+        archie_root=_abs(base, archie_raw) if archie_raw else None,
         train_csv=_abs(base, paths["train_csv"]),
         val_csv=_abs(base, paths["val_csv"]),
         test_csv=_abs(base, paths["test_csv"]),
