@@ -1,0 +1,15 @@
+paths:
+  dataset_root: ../data
+  archie_root: ../archie
+  train_csv: ../data/train.csv
+  val_csv: ../data/val.csv
+  test_csv: ../data/test.csv
+  images_dir: ../data/images
+  output_dir: ../runs
+
+training:
+  image_size: 64
+  batch_size: 32
+  epochs: 15
+  learning_rate: 0.001
+  random_seed: 42
